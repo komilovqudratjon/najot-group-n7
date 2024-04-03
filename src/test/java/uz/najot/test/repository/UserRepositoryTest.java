@@ -28,6 +28,7 @@ class UserRepositoryTest {
     @Test
     void user_jpa_save() {
         //Arrange
+
         Users build = Users.builder().username("test")
                 .active(true)
                 .lastName("testov")
