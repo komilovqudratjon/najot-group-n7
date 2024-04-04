@@ -79,12 +79,4 @@ public class SecurityFilter extends OncePerRequestFilter {
         return Optional.empty();
     }
 
-    public Optional<String> getTokenFromRequest1(HttpServletRequest request) {
-        String bearer = request.getHeader("tem-uuid");
-        if (bearer != null && bearer.startsWith("Bearer ")) {
-            return Optional.of(bearer.substring(7));
-        }
-        return Optional.empty();
-    }
-
 }

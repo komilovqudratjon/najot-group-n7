@@ -1,5 +1,6 @@
 package uz.najot.test.service;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -13,17 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uz.najot.test.confing.JwtService;
 import uz.najot.test.confing.PrincipleUser;
-import uz.najot.test.entity.Attachment;
-import uz.najot.test.entity.Roles;
-import uz.najot.test.entity.Users;
-import uz.najot.test.entity.UsersToken;
+import uz.najot.test.entity.*;
 import uz.najot.test.enums.RoleName;
 import uz.najot.test.model.*;
 import uz.najot.test.repository.AttachmentRepository;
+import uz.najot.test.repository.RefreshTokenRepository;
 import uz.najot.test.repository.UserRepository;
 import uz.najot.test.repository.UserTokenRepository;
-import uz.najot.test.service.AuthService;
-import uz.najot.test.service.EmailService;
 
 import java.util.*;
 
@@ -46,9 +43,10 @@ public class AuthServiceImpl implements AuthService {
     private final AttachmentRepository attachmentRepository;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
-    public LoginResponseDTO login(LoginRequestDTO request) {
+    public JwtTokenDTO login(LoginRequestDTO request) {
 
         // step 1 get user authentication
         Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
@@ -59,9 +57,8 @@ public class AuthServiceImpl implements AuthService {
         SecurityContextHolder.getContext().setAuthentication(authenticate);
 
         // step 3 generate token
-        String token = jwtService.generate(principleUser.getId(), principleUser.getUsername(), principleUser.getRoles());
 
-        return LoginResponseDTO.builder().token(token).build();
+        return jwtService.generateToken(principleUser.getId(), principleUser.getUsername(), principleUser.getRoles());
 
     }
 
@@ -113,12 +110,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResponseDTO verify(String code, String token) {
+    public JwtTokenDTO verify(String code, String token) {
         Optional<UsersToken> byToken = userTokenRepository.findByToken(token);
         if (byToken.isPresent()) {
             UsersToken usersToken = byToken.get();
             if (usersToken.getCount() > 3) {
-                return LoginResponseDTO.builder().token("you can not verify").build();
+                return null;
             }
 
             if (usersToken.getCode().equals(code)) {
@@ -132,13 +129,12 @@ public class AuthServiceImpl implements AuthService {
                         .build();
                 usersRepository.save(user);
                 userTokenRepository.deleteByUsername(usersToken.getUsername());
-                String jwtToken = jwtService.generate(user.getId(), user.getUsername(), user.getRole());
 
-                return LoginResponseDTO.builder().token(jwtToken).build();
+                return jwtService.generateToken(user.getId(), user.getUsername(), user.getRole());
             } else {
                 usersToken.setCount(usersToken.getCount() + 1);
                 userTokenRepository.save(usersToken);
-                return LoginResponseDTO.builder().token("code not found").build();
+                return null;
 
             }
         }
@@ -169,6 +165,20 @@ public class AuthServiceImpl implements AuthService {
     public Users me(PrincipleUser principleUser) {
         Optional<Users> byUsername = usersRepository.findByUsername(principleUser.getUsername());
         return byUsername.orElse(null);
+    }
+
+    @Override
+    public JwtTokenDTO refresh(String token) {
+        DecodedJWT decode = jwtService.decode(token);
+        String subject = decode.getSubject();
+        RefreshToken referenceById = refreshTokenRepository.getReferenceById(UUID.fromString(subject));
+        long time = new Date().getTime();
+        long expireRefreshToken = referenceById.getExpireRefreshToken();
+        Users byId = usersRepository.findById(referenceById.getUserId()).orElse(null);
+        if (expireRefreshToken > time) {
+            return jwtService.generateRefresh(referenceById.getId(), referenceById.getUserId(), byId.getUsername(), byId.getRole());
+        }
+        return null;
     }
 
 }

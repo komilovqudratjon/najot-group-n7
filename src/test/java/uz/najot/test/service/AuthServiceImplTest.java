@@ -56,7 +56,6 @@ class AuthServiceImplTest {
                 .code("351235")
                 .token("fhbswekhfbrjgfbrjhyegfbekyejkrekfry").build();
 
-
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userTokenRepository.save(any(UsersToken.class))).thenReturn(build1);
         doNothing().when(emailService).sendSimpleMessage(anyString(), anyString(), anyString());

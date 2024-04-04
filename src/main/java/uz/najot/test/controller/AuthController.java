@@ -25,7 +25,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public LoginResponseDTO login(@RequestBody LoginRequestDTO request) {
+    public JwtTokenDTO login(@RequestBody LoginRequestDTO request) {
         return authService.login(request);
     }
 
@@ -35,8 +35,13 @@ public class AuthController {
     }
 
     @PostMapping("/verify/{token}/{code}")
-    public LoginResponseDTO verify(@PathVariable String code, @PathVariable String token) {
+    public JwtTokenDTO verify(@PathVariable String code, @PathVariable String token) {
         return authService.verify(code, token);
+    }
+
+    @PostMapping("/refresh-token/{token}")
+    public JwtTokenDTO refresh(@PathVariable String token) {
+        return authService.refresh(token);
     }
 
     @GetMapping("/profile-photo")

@@ -15,15 +15,17 @@ import java.util.List;
 
 public interface AuthService {
 
-    LoginResponseDTO login(LoginRequestDTO request);
+    JwtTokenDTO login(LoginRequestDTO request);
 
     String register(RegisterRequestDTO request);
 
     RegisterResponseDTO updateUser(UpdateUserDTO request, PrincipleUser principleUser) throws Exception;
 
-    LoginResponseDTO verify(String code, String token);
+    JwtTokenDTO verify(String code, String token);
 
     List<FileDTO> getProfilePhoto(PrincipleUser principleUser);
 
     Users me(PrincipleUser principleUser);
+
+    JwtTokenDTO refresh(String token);
 }
